@@ -125,6 +125,8 @@ struct ProfileDetailView: View {
                     // MARK: - Action / Status
                     
                     actionSection(for: profile)
+                    
+                    StatusView(title: "Declined", background: .red.opacity(0.6))
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)

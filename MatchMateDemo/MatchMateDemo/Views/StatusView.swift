@@ -8,11 +8,21 @@
 import SwiftUI
 
 struct StatusView: View {
+    
+    let title: String
+    let background: Color
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        Text(title)
+            .font(.headline)
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(
+                background
+            )
+            .clipShape(
+                RoundedRectangle(cornerRadius: 10)
+            )
     }
-}
-
-#Preview {
-    StatusView()
 }

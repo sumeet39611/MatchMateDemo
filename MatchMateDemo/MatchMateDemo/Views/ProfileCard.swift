@@ -57,6 +57,8 @@ struct ProfileCard: View {
                 
                 Spacer()
             }
+            
+            StatusView(title: "Accepted", background: .teal.opacity(0.9))
         }
         .padding(12)
         .frame(maxWidth: .infinity)
