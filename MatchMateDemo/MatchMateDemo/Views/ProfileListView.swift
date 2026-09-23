@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct ProfileListView: View {
+    
+    @State private var selectedProfileID: String?
+    
     var body: some View {
         NavigationStack {
             Group {
@@ -24,11 +27,21 @@ struct ProfileListView: View {
                             }
                         )
                         .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedProfileID = profile.id
+                        }
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                     }                    }
                 .listStyle(.plain)
                 .navigationTitle("Profile Matches")
+            }
+            .navigationDestination(item: $selectedProfileID) { profileID in
+                if let profile = dummyProfile.first(where: {
+                    $0.id == profileID
+                }) {
+                    ProfileDetailView(profile: profile)
+                }
             }
         }
     }
