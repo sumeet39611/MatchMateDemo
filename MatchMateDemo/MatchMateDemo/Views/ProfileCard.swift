@@ -8,13 +8,13 @@
 import SwiftUI
 
 struct ProfileCard: View {
-    let profile: Profile
+    let profile: ProfileEntity
     let onAccept: () -> Void
     let onDecline: () -> Void
     
     var body: some View {
         VStack {
-            AsyncImage(url: profile.picture.large) { phase in
+            AsyncImage(url: profile.imageURL) { phase in
                 switch phase {
                 case .success(let image):
                     image.resizable().scaledToFill()
@@ -28,37 +28,42 @@ struct ProfileCard: View {
             .frame(width: 150, height: 150)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             
-            Text(profile.name.first)
+            Text(profile.displayName)
                 .font(.title2.bold())
                 .foregroundStyle(.teal.opacity(0.9))
             
-            Text("\(profile.location.city), \(profile.location.state), \(profile.location.country)")
+            Text("\(profile.city), \(profile.state), \(profile.country)")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             
-            HStack {
-                Spacer()
-                
-                ActionButton(
-                    title: "Decline",
-                    systemImage: "xmark",
-                    tint: .red.opacity(0.6),
-                    action: onDecline
-                )
-                
-                Spacer()
-                
-                ActionButton(
-                    title: "Accept",
-                    systemImage: "checkmark",
-                    tint: .teal.opacity(0.9),
-                    action: onAccept
-                )
-                
-                Spacer()
+            // Status / Actions
+            if profile.status == .pending {
+                HStack {
+                    Spacer()
+                    
+                    ActionButton(
+                        title: "Decline",
+                        systemImage: "xmark",
+                        tint: .red.opacity(0.6),
+                        action: onDecline
+                    )
+                    
+                    Spacer()
+                    
+                    ActionButton(
+                        title: "Accept",
+                        systemImage: "checkmark",
+                        tint: .teal.opacity(0.9),
+                        action: onAccept
+                    )
+                    
+                    Spacer()
+                }
+            } else if profile.status == .accepted {
+                StatusView(title: profile.status.title, background: .teal.opacity(0.9))
+            } else {
+                StatusView(title: profile.status.title, background: .red.opacity(0.6))
             }
-            
-            StatusView(title: "Accepted", background: .teal.opacity(0.9))
         }
         .padding(12)
         .frame(maxWidth: .infinity)

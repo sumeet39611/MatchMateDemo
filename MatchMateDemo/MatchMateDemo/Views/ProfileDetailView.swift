@@ -9,7 +9,8 @@ import SwiftUI
 
 struct ProfileDetailView: View {
     
-    let profile: Profile
+    @EnvironmentObject private var store: MatchStore
+    let profile: ProfileEntity
     
     var body: some View {
         Group {
@@ -18,7 +19,7 @@ struct ProfileDetailView: View {
                     
                     // MARK: - Profile Header
                     
-                    AsyncImage(url: profile.picture.large) { phase in
+                    AsyncImage(url: profile.imageURL) { phase in
                         switch phase {
                         case .success(let image):
                             image
@@ -50,7 +51,7 @@ struct ProfileDetailView: View {
                     
                     VStack(alignment: .leading, spacing: 8) {
                         
-                        Text(profile.name.first)
+                        Text(profile.displayName)
                             .font(.title.bold())
                             .foregroundStyle(.teal.opacity(0.9))
                         
@@ -61,7 +62,7 @@ struct ProfileDetailView: View {
                         .foregroundStyle(.secondary)
                         
                         Label(
-                            "\(profile.location.city), \(profile.location.state), \(profile.location.country)",
+                            "\(profile.city), \(profile.state), \(profile.country)",
                             systemImage: "location"
                         )
                         .font(.subheadline)
@@ -78,13 +79,13 @@ struct ProfileDetailView: View {
                             
                             InformationCard(
                                 title: "Date of Birth",
-                                value: formattedDate(profile.dob.date),
+                                value: formattedDate(profile.dob),
                                 systemImage: "calendar"
                             )
                             
                             InformationCard(
                                 title: "Nationality",
-                                value: profile.nat,
+                                value: profile.nationality,
                                 systemImage: "globe"
                             )
                         }
@@ -98,7 +99,7 @@ struct ProfileDetailView: View {
                         
                         InformationCard(
                             title: "Registered",
-                            value: formattedDate(profile.registered.date),
+                            value: formattedDate(profile.registered),
                             systemImage: "person.badge.clock"
                         )
                     }
@@ -125,8 +126,6 @@ struct ProfileDetailView: View {
                     // MARK: - Action / Status
                     
                     actionSection(for: profile)
-                    
-                    StatusView(title: "Declined", background: .red.opacity(0.6))
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -148,38 +147,46 @@ struct ProfileDetailView: View {
     // MARK: - Action Section
     
     @ViewBuilder
-    private func actionSection(for profile: Profile) -> some View {
-        VStack(spacing: 16) {
-            
-            Text("What would you like to do with this profile?")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            HStack(spacing: 12) {
+    private func actionSection(for profile: ProfileEntity) -> some View {
+        
+        if profile.status == .pending {
+            VStack(spacing: 16) {
                 
-                DecisionButton(
-                    title: "Decline",
-                    systemImage: "xmark",
-                    tint: .red.opacity(0.6)
-                ) {
-                    print("Declined")
-                }
+                Text("What would you like to do with this profile?")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
-                DecisionButton(
-                    title: "Accept",
-                    systemImage: "checkmark",
-                    tint: .teal.opacity(0.9)
-                ) {
-                    print("Accepted")
+                HStack(spacing: 12) {
+                    
+                    DecisionButton(
+                        title: "Decline",
+                        systemImage: "xmark",
+                        tint: .red.opacity(0.6)
+                    ) {
+                        store.updateStatus(.declined, for: profile)
+                    }
+                    
+                    DecisionButton(
+                        title: "Accept",
+                        systemImage: "checkmark",
+                        tint: .teal.opacity(0.9)
+                    ) {
+                        store.updateStatus(.accepted, for: profile)
+                    }
                 }
             }
+            .frame(maxWidth: .infinity)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(.secondarySystemBackground))
+            )
+        } else if profile.status == .accepted {
+            
+            StatusView(title: profile.status.title, background: .teal.opacity(0.9))
+        } else {
+            StatusView(title: profile.status.title, background: .red.opacity(0.6))
         }
-        .frame(maxWidth: .infinity)
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(.secondarySystemBackground))
-        )
     }
     
     // MARK: - Date Formatting
