@@ -6,33 +6,101 @@
 //
 
 import XCTest
+import SwiftData
 @testable import MatchMateDemo
 
 final class MatchMateDemoTests: XCTestCase {
+    
+    @MainActor
+    func testUpdateStatusPersists() async throws {
+        let schema = Schema([ProfileEntity.self])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: [configuration])
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        let profile = Profile(
+            gender: "male",
+            name: APIName(title: "Mr", first: "Test", last: "User"),
+            location: APILocation(city: "Pune", state: "Maharashtra", country: "India"),
+            email: "test@example.com",
+            login: APILogin(uuid: "stable-id"),
+            dob: APIDateOfBirth(date: Date()),
+            registered: APIDateOfBirth(date: Date()),
+            phone: "123",
+            cell: "456",
+            picture: APIPicture(
+                large: URL(string: "https://example.com/large.jpg")!,
+                medium: URL(string: "https://example.com/medium.jpg")!
+            ),
+            nat: "IN"
+        )
+
+        let network = MockNetworkClient(pages: [[profile]])
+        let repository = ProfileRepository(
+            container: container,
+            network: network
+        )
+
+        _ = try await repository.fetchNextPage()
+        try repository.updateStatus(profileID: "stable-id", status: MatchStatus.accepted)
+
+        let cached = try repository.cachedProfiles()
+        XCTAssertEqual(cached.first?.status, .accepted)
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    @MainActor
+    func testPaginationAdvancesPage() async throws {
+        let schema = Schema([ProfileEntity.self])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: [configuration])
+
+        let first = makeProfile(id: "1", first: "First")
+        let second = makeProfile(id: "2", first: "Second")
+        let network = MockNetworkClient(pages: [[first], [second]])
+
+        let repository = ProfileRepository(
+            container: container,
+            network: network
+        )
+
+        _ = try await repository.fetchNextPage()
+        _ = try await repository.fetchNextPage()
+
+        let cached = try repository.cachedProfiles()
+        XCTAssertEqual(cached.count, 2)
+        XCTAssertEqual(cached.map(\.page), [1, 2])
+        XCTAssertEqual(network.requestedPages, [1, 2])
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-        // XCTest Documentation
-        // https://developer.apple.com/documentation/xctest
+    private func makeProfile(id: String, first: String) -> Profile {
+        Profile(
+            gender: "male",
+            name: APIName(title: "Mr", first: first, last: "User"),
+            location: APILocation(city: "Pune", state: "Maharashtra", country: "India"),
+            email: "\(id)@example.com",
+            login: APILogin(uuid: id),
+            dob: APIDateOfBirth(date: Date()),
+            registered: APIDateOfBirth(date: Date()),
+            phone: "123",
+            cell: "456",
+            picture: APIPicture(
+                large: URL(string: "https://example.com/large.jpg")!,
+                medium: URL(string: "https://example.com/medium.jpg")!
+            ),
+            nat: "IN"
+        )
+    }
+}
+
+final class MockNetworkClient: NetworkClient {
+    let pages: [[Profile]]
+    private(set) var requestedPages: [Int] = []
+
+    init(pages: [[Profile]]) {
+        self.pages = pages
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
+    func fetchProfiles(page: Int, results: Int) async throws -> [Profile] {
+        requestedPages.append(page)
+        return pages[page - 1]
     }
-
 }
